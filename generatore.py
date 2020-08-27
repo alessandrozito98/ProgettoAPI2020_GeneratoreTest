@@ -2,15 +2,8 @@
 from random import choice
 
 '''
-Maxfilelen è una lista che tiene traccia continuamente della
-lunghezza del file, in modo da avere un riferimento da usare
-nelle Change
-'''
-maxfilelen = [0]
-
-'''
-Index viene spostato da Undo e Redo, e serve come indice di
-maxfilelen per sapere qual è la dimensione del file attuale
+Index viene spostato da Undo e Redo, e serve come indice per
+capire quante istruzioni ci sono da disfare/rifare
 '''
 index = 0
 
@@ -25,6 +18,23 @@ PUndo è un array che tiene traccia delle istruzioni, è un array
 di classi Undo
 '''
 PUndo = []
+
+
+'''
+INPUT
+'''
+
+# Lunghezza massima del file
+maxlen = int(input("Massima lughezza del file? [default 1024] ") or "1024")
+
+# Numero di comandi del test
+length = int(input("Quanti comandi? [default 1000] ") or "1000")
+
+# Categoria di test
+category = int(input("Che modalità di test?\n\
+        0. Test con tutti i comandi possibili, in ordine casuale\n\
+        1. Test simile a RollingBack, c, d e p all'inizio, u, r e p alla fine (ultimo 10%)\n\
+        Scegliere il numero corrispondente [default 0] ") or "0")
 
 
 '''
@@ -45,25 +55,17 @@ class Undo():
 def ChangeUndo(elem):
     n0 = elem.Pos[0]
     n1 = elem.Pos[1]
-    save0 = n0 - 1
     j = 0
-    for i in range(n1 - n0 + 1):
+    num = n1 - n0 + 1
+    for i in range(num):
         if elem.Strings[i] == "":
-            try:
-                elem.Strings[i] = file.pop(save0 - i + j)
-            except IndexError:
-                elem.Strings[i] = ''
+            elem.Strings[i] = file.pop(n0 - 1 - i + j)
         else:
             tmp = elem.Strings[i]
-            try:
-                elem.Strings[i] = file[save0]
-                file[save0] = tmp
-            except IndexError:
-                elem.Strings[i] = ''
-                file.append(tmp)
+            elem.Strings[i] = file[n0 - 1]
+            file[n0 - 1] = tmp
             j += 1
-
-        save0 += 1
+        n0 += 1
 
 # Undo di un'istruzione Delete
 def DeleteUndo(elem):
@@ -113,24 +115,8 @@ def DeleteRedo(elem):
 
 # Flush della pila
 def Flush():
-    del PUndo[index:]
-
-
-'''
-INPUT
-'''
-
-# Lunghezza massima del file
-maxlen = int(input("Massima lughezza del file? [default 1024] ") or "1024")
-
-# Numero di comandi del test
-length = int(input("Quanti comandi? [default 1000] ") or "1000")
-
-# Categoria di test
-category = int(input("Che modalità di test?\n\
-        0. Test con tutti i comandi possibili, in ordine casuale\n\
-        1. Test simile a RollingBack, c, d e p all'inizio, u, r e p alla fine (ultimo 10%)\n\
-        Scegliere il numero corrispondente [default 0] ") or "0")
+    if index != len(PUndo):
+        del PUndo[index:]
 
 
 '''
@@ -205,9 +191,6 @@ for i in range(length - 1):
                     ChangeRedo(elem)
                 else:
                     DeleteRedo(elem)
-                if index > len(maxfilelen) - 1:
-                    index = len(maxfilelen) - 1
-                    break;
 
     # Delete o Print
     elif letter == 'd' or letter == 'p':
@@ -215,50 +198,32 @@ for i in range(length - 1):
         # è maggiore del primo
         num0 = choice(range(maxlen))
         num1 = choice(range(num0, maxlen))
-        nums = [num0, num1]
         # crea il comando e lo mette nella stringa s
         s = '{},{}{}'.format(num0, num1, letter)
 
-        # se è una Delete, tiene traccia della nuova lunghezza del file
+        # Delete
         if letter == 'd':
-            # se non è alla fine della lista maxfilelen, vuol dire che
-            # c'è stata un'Undo precedentemente, ma ora elimina tutto
-            # quello che viene dopo l'indice attuale
-            if index != len(maxfilelen) - 1:
-                maxfilelen = maxfilelen[:index + 1]
-                Flush()
+            Flush()
 
-            # se non viene eliminato niente (il file era di lunghezza
-            # 0 precedentemente o sta cercando di eliminare qualcosa che
-            # viene dopo il file), la lunghezza rimane invariata
-            if (maxfilelen[index] == 0 or num0 > maxfilelen[index]):
-                maxfilelen.append(maxfilelen[index])
-            # se sta eliminando tutto il file, la lunghezza è 0
-            elif maxfilelen[index] <= num1 and (num0 == 1 or num0 == 0):
-                maxfilelen.append(0)
-            # altrimenti, scrive la lunghezza, quella precedente meno
-            # il numero di righe cancellate
-            else:
-                num1 = min(maxfilelen[index], num1)
-                maxfilelen.append(maxfilelen[index] - (num1 - num0 + 1))
-
-            # fa effettivamente la Delete
             strs = []
-            save0 = num0
-            for j in range(num1 - num0 + 1):
-                try:
-                    if save0 == 0:
+            if num0 == 0:
+                num0 = 1
+            nums = [num0, num1]
+            num = num1 - num0 + 1
+
+            for j in range(num):
+                if len(file) > 0:
+                    try:
+                        if num0 != 0:
+                            strs.append(file.pop(num0 - 1))
+                    except IndexError:
                         pass
-                    else:
-                        strs.append(file.pop(save0 - 1 - j))
-                except IndexError:
-                    pass
-                save0 += 1
 
             # aggiunge il comando alla pila degli undo
             PUndo.append(Undo('d', strs, nums))
 
             index += 1
+
         # Print
         else:
             save0 = num0
@@ -276,14 +241,15 @@ for i in range(length - 1):
     else:
         # se la lunghezza attuale del file è 0, il comando deve per forza
         # iniziare da 1
-        if maxfilelen[index] == 0:
+        if len(file) == 0:
             num0 = 1
         # altrimenti, numero casuale tra 1 e la lunghezza attuale + 1
         else:
-            num0 = choice(range(1, maxfilelen[index] + 1))
+            num0 = choice(range(1, len(file) + 1))
         num1 = choice(range(num0, maxlen))
         nums = [num0, num1]
 
+        Flush()
         # crea il comando e lo mette nella stringa s
         s = '{},{}{}\n'.format(num0, num1, letter)
         # aggiunge alla stringa il numero stabilito di frasi, e il . finale
@@ -303,14 +269,6 @@ for i in range(length - 1):
             save0 += 1
         s += '.'
 
-        # se non è alla fine della lista maxfilelen, vuol dire che
-        # c'è stata un'Undo precedentemente, ma ora elimina tutto
-        # quello che viene dopo l'indice attuale e aggiunge il nuovo
-        # valore di lunghezza del file
-        if index != len(maxfilelen) - 1:
-            maxfilelen = maxfilelen[:index + 1]
-            Flush()
-        maxfilelen.append(max(num1, maxfilelen[index]))
         index += 1
 
         PUndo.append(Undo('c', strs, nums))
