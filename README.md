@@ -4,20 +4,20 @@ Generatore Test in Python3 per il progetto di Algoritmi e Progettazione dell'Inf
 
 ## Come utilizzare l'autotester:
 
-* Controllare i settings in ```autotester_settings.json``` per poter personalizzare la creazione dei test del generatore
+* Controllare i settings in ``autotester_settings.json`` per poter personalizzare la creazione dei test del generatore
 
-In particolare: ```generatorArgs``` contiene una lista con le scelte inviate al generatore per creare i test della simulazione
+In particolare: ``generatorArgs`` contiene una lista con le scelte inviate al generatore per creare i test della simulazione
 
-* controllare di avere il proprio file sorgente nella directory corrente, con nome ```main.c```
-(e' possibile rinominare il file in maniera diversa e specificare un differente valore nel json al valore ```source```)
+* controllare di avere il proprio file sorgente nella directory corrente, con nome ``main.c``
+(e' possibile rinominare il file in maniera diversa e specificare un differente valore nel json al valore ``source``)
 
 * lanciare il comando
-```shell
+``shell
 python autotester.py
-```
+``
 
 ### Esempio di output:
-```
+``
 try number: 1...OK
 try number: 2...OK
 try number: 3...OK
@@ -31,7 +31,7 @@ try number: 10... KO
 Files your_output.txt and sol.txt differ
 
 Please run 'diff your_output.txt sol.txt' to find differences.
-```
+``
 
 Nel caso di programma funzionante il generatore andra' avanti all'infinito senza mai segnalare un **KO**.
 
